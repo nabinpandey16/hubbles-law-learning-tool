@@ -83,16 +83,7 @@ hubble-law-explorer/
 
 ---
 
-## Hosting on GitHub Pages
-
-1. Push this repository to GitHub
-2. Go to Settings > Pages
-3. Set Source to "Deploy from a branch" and select `main` / `root`
-4. Your site will be live at `https://yourusername.github.io/hubble-law-explorer`
-
-No build step required. `index.html` is fully self-contained — all CSS, JavaScript, and fonts are inlined or loaded from Google Fonts CDN.
-
----
+ 
 
 ## Physics Notes
 
