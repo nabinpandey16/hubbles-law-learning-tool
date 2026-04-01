@@ -1,0 +1,1442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Hubble's Law Explorer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@300;400;700&family=Libre+Baskerville:ital@0;1&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --void: #04060f;
+      --deep: #080c1a;
+      --surface: #0d1228;
+      --panel: #111830;
+      --border: #1e2d55;
+      --accent: #4f8cff;
+      --accent-dim: #2a4a8a;
+      --amber: #f5a623;
+      --amber-dim: #7a5010;
+      --teal: #00c9a7;
+      --teal-dim: #005a4a;
+      --text: #d8e4f0;
+      --text-dim: #6a7e99;
+      --text-faint: #2e3f60;
+      --red: #ff5f6d;
+      --glow: rgba(79,140,255,0.12);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--void);
+      color: var(--text);
+      font-family: 'Libre Baskerville', serif;
+      font-size: 16px;
+      line-height: 1.75;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ---- STARFIELD ---- */
+    #starfield {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .star {
+      position: absolute;
+      border-radius: 50%;
+      background: white;
+      animation: twinkle var(--dur) ease-in-out infinite;
+      opacity: var(--op);
+    }
+
+    @keyframes twinkle {
+      0%, 100% { opacity: var(--op); transform: scale(1); }
+      50% { opacity: calc(var(--op) * 0.2); transform: scale(0.6); }
+    }
+
+    /* ---- LAYOUT ---- */
+    .wrapper {
+      position: relative;
+      z-index: 1;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 2rem;
+    }
+
+    /* ---- HERO ---- */
+    header {
+      position: relative;
+      text-align: center;
+      padding: 7rem 2rem 4rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .eyebrow {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 1.5rem;
+      display: block;
+    }
+
+    header h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2.4rem, 6vw, 4.5rem);
+      font-weight: 700;
+      line-height: 1.1;
+      color: #fff;
+      margin-bottom: 1rem;
+      letter-spacing: -0.02em;
+    }
+
+    header h1 span {
+      color: var(--accent);
+      font-style: italic;
+    }
+
+    header p {
+      color: var(--text-dim);
+      max-width: 560px;
+      margin: 0 auto 2.5rem;
+      font-size: 1rem;
+      font-style: italic;
+    }
+
+    /* ---- LEVEL SELECTOR ---- */
+    .level-nav {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      padding: 2.5rem 2rem;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(to bottom, rgba(13,18,40,0.0), rgba(13,18,40,0.8));
+    }
+
+    .level-btn {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+      padding: 0.6rem 1.6rem;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      color: var(--text-dim);
+      cursor: pointer;
+      border-radius: 2px;
+      transition: all 0.25s;
+      text-transform: uppercase;
+    }
+
+    .level-btn:hover { color: var(--text); border-color: var(--accent-dim); }
+    .level-btn.active { color: #fff; border-color: var(--accent); background: rgba(79,140,255,0.12); box-shadow: 0 0 20px rgba(79,140,255,0.15); }
+
+    /* ---- MODULE PANELS ---- */
+    .module {
+      display: none;
+      padding: 3rem 0 5rem;
+      animation: fadeIn 0.4s ease;
+    }
+    .module.active { display: block; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .module-header {
+      display: flex;
+      align-items: baseline;
+      gap: 1.5rem;
+      margin-bottom: 2.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .module-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      padding: 0.3rem 0.8rem;
+      border-radius: 1px;
+    }
+
+    .tag-beginner { background: rgba(0,201,167,0.15); color: var(--teal); border: 1px solid var(--teal-dim); }
+    .tag-intermediate { background: rgba(245,166,35,0.12); color: var(--amber); border: 1px solid var(--amber-dim); }
+    .tag-advanced { background: rgba(79,140,255,0.12); color: var(--accent); border: 1px solid var(--accent-dim); }
+
+    .module-header h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.8rem;
+      color: #fff;
+      font-weight: 700;
+    }
+
+    /* ---- CONTENT ELEMENTS ---- */
+    .section {
+      margin-bottom: 2.5rem;
+    }
+
+    .section h3 {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--text-faint);
+    }
+
+    .section p {
+      color: var(--text);
+      margin-bottom: 1rem;
+    }
+
+    .callout {
+      border-left: 3px solid var(--accent);
+      background: var(--glow);
+      padding: 1rem 1.4rem;
+      margin: 1.5rem 0;
+      border-radius: 0 2px 2px 0;
+    }
+
+    .callout.amber { border-color: var(--amber); background: rgba(245,166,35,0.06); }
+    .callout.teal { border-color: var(--teal); background: rgba(0,201,167,0.06); }
+    .callout.red { border-color: var(--red); background: rgba(255,95,109,0.06); }
+
+    .callout p { margin: 0; }
+
+    .equation-block {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      padding: 1.2rem 1.8rem;
+      margin: 1.5rem 0;
+      border-radius: 2px;
+      text-align: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.1rem;
+      color: #fff;
+      letter-spacing: 0.05em;
+      position: relative;
+    }
+
+    .equation-block .eq-label {
+      position: absolute;
+      top: 0.4rem;
+      right: 0.8rem;
+      font-size: 0.6rem;
+      letter-spacing: 0.2em;
+      color: var(--text-dim);
+      text-transform: uppercase;
+    }
+
+    .equation-block .eq-sub {
+      display: block;
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      margin-top: 0.5rem;
+      font-family: 'Libre Baskerville', serif;
+      font-style: italic;
+    }
+
+    /* ---- SIMULATION ---- */
+    .sim-container {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: 1.5rem;
+      margin: 2rem 0;
+    }
+
+    .sim-container h3 {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 1.2rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.6rem;
+    }
+
+    canvas {
+      display: block;
+      background: #020409;
+      border: 1px solid var(--text-faint);
+      border-radius: 1px;
+      margin-bottom: 1rem;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .ctrl-group label {
+      display: block;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.68rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 0.4rem;
+    }
+
+    .ctrl-group input[type=range] {
+      width: 100%;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .ctrl-group .val-display {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      color: #fff;
+      margin-top: 0.3rem;
+    }
+
+    .ctrl-row {
+      display: flex;
+      gap: 0.8rem;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 0.55rem 1.2rem;
+      border: 1px solid var(--accent-dim);
+      background: transparent;
+      color: var(--accent);
+      cursor: pointer;
+      border-radius: 1px;
+      transition: all 0.2s;
+    }
+
+    .btn:hover { background: rgba(79,140,255,0.15); }
+    .btn.primary { background: rgba(79,140,255,0.2); }
+
+    .readout {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      color: var(--teal);
+      background: rgba(0,201,167,0.05);
+      border: 1px solid var(--teal-dim);
+      padding: 0.6rem 1rem;
+      border-radius: 1px;
+    }
+
+    /* ---- QUIZ ---- */
+    .quiz-wrap {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      padding: 1.5rem;
+      margin: 2rem 0;
+      border-radius: 2px;
+    }
+
+    .quiz-wrap h3 {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 1rem;
+    }
+
+    .quiz-q {
+      margin-bottom: 1rem;
+    }
+
+    .quiz-q p {
+      margin-bottom: 0.8rem;
+    }
+
+    .quiz-options {
+      display: grid;
+      gap: 0.5rem;
+    }
+
+    .quiz-opt {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      padding: 0.7rem 1rem;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      border-radius: 1px;
+      transition: all 0.2s;
+      text-align: left;
+    }
+
+    .quiz-opt:hover:not(:disabled) { border-color: var(--accent-dim); background: var(--glow); }
+    .quiz-opt.correct { border-color: var(--teal); background: rgba(0,201,167,0.1); color: var(--teal); }
+    .quiz-opt.wrong { border-color: var(--red); background: rgba(255,95,109,0.08); color: var(--red); }
+
+    .quiz-feedback {
+      margin-top: 0.8rem;
+      font-size: 0.9rem;
+      font-style: italic;
+      color: var(--text-dim);
+      min-height: 1.4em;
+    }
+
+    /* ---- DATA TABLE ---- */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      margin: 1.5rem 0;
+    }
+
+    .data-table th {
+      text-align: left;
+      padding: 0.6rem 1rem;
+      background: var(--surface);
+      color: var(--text-dim);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      font-size: 0.65rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .data-table td {
+      padding: 0.6rem 1rem;
+      border-bottom: 1px solid var(--text-faint);
+      color: var(--text);
+    }
+
+    .data-table tr:hover td { background: rgba(79,140,255,0.04); }
+
+    /* ---- DERIVATION STEPS ---- */
+    .derivation {
+      counter-reset: step;
+    }
+
+    .d-step {
+      display: flex;
+      gap: 1.2rem;
+      margin-bottom: 1.5rem;
+      align-items: flex-start;
+    }
+
+    .d-step-num {
+      counter-increment: step;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--accent);
+      min-width: 2rem;
+      padding-top: 0.3rem;
+      letter-spacing: 0.1em;
+    }
+
+    .d-step-num::before { content: counter(step, decimal-leading-zero); }
+
+    .d-step-body p { margin-bottom: 0.5rem; }
+
+    /* ---- GRAPH (Advanced) ---- */
+    #hubble-plot {
+      width: 100%;
+      height: 320px;
+      background: #020409;
+      border: 1px solid var(--text-faint);
+      border-radius: 1px;
+      cursor: crosshair;
+    }
+
+    /* ---- TABS (Advanced module) ---- */
+    .tab-nav {
+      display: flex;
+      gap: 0;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 1.5rem;
+    }
+
+    .tab-btn {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 0.6rem 1.2rem;
+      border: none;
+      background: transparent;
+      color: var(--text-dim);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: all 0.2s;
+    }
+
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; animation: fadeIn 0.3s ease; }
+
+    /* ---- FOOTER ---- */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 2rem;
+      text-align: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.68rem;
+      color: var(--text-dim);
+      letter-spacing: 0.1em;
+    }
+
+    footer a { color: var(--accent); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    /* ---- RESPONSIVE ---- */
+    @media (max-width: 640px) {
+      header { padding: 5rem 1.5rem 3rem; }
+      .wrapper { padding: 0 1.2rem; }
+      canvas { width: 100%; height: auto; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Starfield -->
+<div id="starfield"></div>
+
+<!-- Header -->
+<header>
+  <span class="eyebrow">Interactive Learning Tool</span>
+  <h1>Hubble's <span>Law</span> Explorer</h1>
+  <p>The universe is expanding. Every galaxy is receding from every other. Let us understand why, and how we know.</p>
+</header>
+
+<!-- Level Navigation -->
+<div class="level-nav">
+  <button class="level-btn active" onclick="switchModule('beginner', this)">Beginner - General Public</button>
+  <button class="level-btn" onclick="switchModule('intermediate', this)">Intermediate - Undergraduate</button>
+  <button class="level-btn" onclick="switchModule('advanced', this)">Advanced - Master Level</button>
+</div>
+
+<!-- BEGINNER MODULE -->
+<div id="mod-beginner" class="module active">
+  <div class="wrapper">
+    <div class="module-header">
+      <span class="module-tag tag-beginner">Beginner</span>
+      <h2>The Expanding Universe</h2>
+    </div>
+
+    <div class="section">
+      <h3>What is happening out there?</h3>
+      <p>Imagine a loaf of raisin bread baking in the oven. As the bread rises, all the raisins move away from each other, not because the raisins themselves are moving through the bread, but because the bread itself is stretching. The universe works the same way. Space itself is expanding, and every galaxy is being carried away from every other galaxy.</p>
+      <div class="callout teal">
+        <p>Edwin Hubble discovered in 1929 that the farther a galaxy is from us, the faster it is moving away. This single observation changed everything we thought we knew about the universe.</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>The Simple Rule</h3>
+      <p>Hubble noticed a pattern. Galaxies twice as far away move twice as fast. Galaxies ten times farther move ten times faster. There is a perfect, clean relationship between distance and speed. We now call this Hubble's Law.</p>
+      <div class="equation-block">
+        v = H<sub>0</sub> &times; d
+        <span class="eq-sub">speed = Hubble's constant times distance</span>
+      </div>
+      <p>Think of it like this: if you are standing in the center of the rising bread, every raisin that is 1 centimeter away moves at a certain speed. A raisin 2 centimeters away moves twice that speed. The bread does not have a center, but the math works out the same from any raisin.</p>
+    </div>
+
+    <!-- Beginner Simulation: Expanding Universe -->
+    <div class="sim-container">
+      <h3>Simulation: Watch the Universe Expand</h3>
+      <canvas id="canvas-beginner" width="700" height="380"></canvas>
+      <div class="controls">
+        <div class="ctrl-group">
+          <label>Expansion Speed (H0)</label>
+          <input type="range" id="b-h0" min="0" max="100" value="50">
+          <div class="val-display" id="b-h0-val">H0 = 70 km/s/Mpc</div>
+        </div>
+      </div>
+      <div class="ctrl-row">
+        <button class="btn primary" id="b-play" onclick="toggleBeginnerSim()">Pause</button>
+        <button class="btn" onclick="resetBeginnerSim()">Reset</button>
+      </div>
+      <div class="readout" id="b-readout">Select any galaxy by hovering to see its speed and distance.</div>
+    </div>
+
+    <div class="section">
+      <h3>What does this tell us?</h3>
+      <p>If everything is moving apart now, then in the past, everything must have been closer together. Wind the clock back far enough and all of space, time, matter, and energy was packed into a single point. That moment of birth, roughly 13.8 billion years ago, is what we call the Big Bang.</p>
+      <div class="callout">
+        <p>Hubble's Law gives us a way to estimate the age of the universe. If you know how fast things are flying apart, you can work backward to figure out when they all started together.</p>
+      </div>
+      <p>The number H0, called the Hubble constant, tells us the current rate of expansion. Measuring it precisely is one of the most active debates in modern cosmology.</p>
+    </div>
+
+    <div class="section">
+      <h3>The Redshift Clue</h3>
+      <p>How did Hubble know galaxies were moving away? He used light. When a source of sound moves away from you, the pitch drops. The same happens with light: when a galaxy moves away, its light stretches to longer, redder wavelengths. Astronomers call this redshift. The faster the galaxy moves, the more redshifted its light appears.</p>
+      <div class="callout amber">
+        <p>Redshift is the universe's speedometer. By measuring how much a galaxy's light has been stretched, we can calculate exactly how fast it is receding from us.</p>
+      </div>
+    </div>
+
+    <!-- Beginner Quiz -->
+    <div class="quiz-wrap">
+      <h3>Quick Check</h3>
+      <div class="quiz-q" id="bq">
+        <p>A galaxy is 100 million light-years away. Another galaxy is 300 million light-years away. Compared to the nearer galaxy, how fast is the distant galaxy moving away?</p>
+        <div class="quiz-options">
+          <button class="quiz-opt" onclick="bquiz(this, false)">About the same speed</button>
+          <button class="quiz-opt" onclick="bquiz(this, false)">Twice as fast</button>
+          <button class="quiz-opt" onclick="bquiz(this, true)">Three times as fast</button>
+          <button class="quiz-opt" onclick="bquiz(this, false)">Ten times as fast</button>
+        </div>
+        <div class="quiz-feedback" id="bq-fb"></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>Why it matters</h3>
+      <p>Hubble's Law is not just a curiosity. It is the foundation of modern cosmology. It tells us the universe had a beginning, that it is not static or eternal, and that there is structure to space itself. Every discovery since, from dark energy to the cosmic microwave background, builds on this one observation made nearly a century ago.</p>
+    </div>
+  </div>
+</div>
+
+<!-- INTERMEDIATE MODULE -->
+<div id="mod-intermediate" class="module">
+  <div class="wrapper">
+    <div class="module-header">
+      <span class="module-tag tag-intermediate">Intermediate</span>
+      <h2>Hubble's Law: Measurement and Mechanics</h2>
+    </div>
+
+    <div class="section">
+      <h3>The Formal Statement</h3>
+      <p>Hubble's Law states that the recession velocity of a galaxy is proportional to its proper distance from the observer:</p>
+      <div class="equation-block">
+        v = H<sub>0</sub> d
+        <span class="eq-label">Hubble 1929</span>
+        <span class="eq-sub">v in km/s, d in Mpc, H0 in km/s/Mpc</span>
+      </div>
+      <p>The current accepted value of H0 is approximately 67-73 km/s/Mpc, though a tension between different measurement methods (the Hubble Tension) remains unresolved. For every megaparsec (about 3.26 million light-years) of distance, a galaxy recedes roughly 70 km/s faster.</p>
+      <div class="callout">
+        <p>One Megaparsec (Mpc) = 3.086 x 10^22 meters = 3.26 million light-years. These are the natural units of extragalactic astronomy.</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>Redshift and the Doppler Connection</h3>
+      <p>The observational basis of Hubble's Law is spectroscopic redshift. For non-relativistic recession velocities (v much less than c), the redshift z is defined as:</p>
+      <div class="equation-block">
+        z = (λ<sub>obs</sub> - λ<sub>emit</sub>) / λ<sub>emit</sub> = v / c
+        <span class="eq-sub">z: redshift, lambda: wavelength, c: speed of light</span>
+      </div>
+      <p>Hubble measured absorption line spectra of galaxies and compared the observed wavelengths against laboratory standards. The systematic blueshift toward shorter wavelengths meant approach; redshift toward longer wavelengths meant recession. Almost every galaxy he observed was redshifted.</p>
+    </div>
+
+    <!-- Intermediate Simulation: Hubble Diagram Builder -->
+    <div class="sim-container">
+      <h3>Simulation: Build the Hubble Diagram</h3>
+      <p style="color:var(--text-dim); font-size:0.88rem; margin-bottom:1rem;">Add galaxies with measured redshift and distance. Fit the Hubble constant from your data.</p>
+      <canvas id="canvas-hubble-diagram" width="700" height="320"></canvas>
+      <div class="controls">
+        <div class="ctrl-group">
+          <label>Galaxy Distance (Mpc)</label>
+          <input type="range" id="i-dist" min="10" max="500" value="100">
+          <div class="val-display" id="i-dist-val">100 Mpc</div>
+        </div>
+        <div class="ctrl-group">
+          <label>True H0 (km/s/Mpc)</label>
+          <input type="range" id="i-h0" min="50" max="100" value="70">
+          <div class="val-display" id="i-h0-val">H0 = 70 km/s/Mpc</div>
+        </div>
+        <div class="ctrl-group">
+          <label>Measurement Scatter</label>
+          <input type="range" id="i-noise" min="0" max="50" value="15">
+          <div class="val-display" id="i-noise-val">Noise: 15%</div>
+        </div>
+      </div>
+      <div class="ctrl-row">
+        <button class="btn primary" onclick="addGalaxy()">Add Galaxy</button>
+        <button class="btn" onclick="addBatch()">Add 10 Galaxies</button>
+        <button class="btn" onclick="fitLine()">Fit H0</button>
+        <button class="btn" onclick="clearGalaxies()">Clear</button>
+      </div>
+      <div class="readout" id="i-readout">Add galaxies to build your Hubble diagram. Then fit to extract H0.</div>
+    </div>
+
+    <div class="section">
+      <h3>The Cosmic Distance Ladder</h3>
+      <p>Measuring galaxy distances is the hardest part. We cannot use a single method for all scales. Instead, astronomers use a chain of methods, each calibrating the next:</p>
+      <table class="data-table">
+        <thead>
+          <tr><th>Rung</th><th>Method</th><th>Range</th><th>Notes</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>1</td><td>Parallax</td><td>up to ~10 kpc</td><td>Geometric, most direct</td></tr>
+          <tr><td>2</td><td>Cepheid Variables</td><td>up to ~30 Mpc</td><td>Period-luminosity relation</td></tr>
+          <tr><td>3</td><td>Type Ia Supernovae</td><td>up to ~1000 Mpc</td><td>"Standard candles"</td></tr>
+          <tr><td>4</td><td>Hubble's Law itself</td><td>cosmological</td><td>Assumes H0 is known</td></tr>
+        </tbody>
+      </table>
+      <p>Each rung introduces its own systematic uncertainties, which is part of why the measured value of H0 still has debate around it depending on which rungs you trust.</p>
+    </div>
+
+    <div class="section">
+      <h3>Peculiar Velocities and Real Data</h3>
+      <p>Galaxies do not follow Hubble's Law exactly. They also have peculiar velocities, local motions due to gravitational interactions with neighboring galaxies and clusters. At small distances (a few Mpc), these peculiar motions can dominate over the Hubble flow. This is why Hubble's Law only becomes reliable at distances of roughly 10 Mpc and beyond, where the cosmological expansion overwhelms local dynamics.</p>
+      <div class="callout amber">
+        <p>Our own Milky Way and the Andromeda galaxy are gravitationally bound and will eventually merge. Their relative motion is actually a blueshift, opposite to Hubble's Law at local scales.</p>
+      </div>
+    </div>
+
+    <!-- Intermediate Quiz -->
+    <div class="quiz-wrap">
+      <h3>Concept Check</h3>
+      <div id="iq-container"></div>
+      <div class="ctrl-row" style="margin-top:1rem;">
+        <button class="btn" onclick="nextIQ()">Next Question</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>Estimating the Age of the Universe</h3>
+      <p>A rough estimate of the age of the universe follows from a simple dimensional argument. If galaxies have been moving at their current speeds since the beginning (ignoring acceleration or deceleration), then the time since everything was together is approximately:</p>
+      <div class="equation-block">
+        t &asymp; 1/H<sub>0</sub> &asymp; 14 billion years
+        <span class="eq-sub">This Hubble time assumes constant expansion rate</span>
+      </div>
+      <p>For H0 = 70 km/s/Mpc, converting units gives roughly 14 billion years. The actual age (13.8 billion years) is close but not identical, because the expansion rate has not been constant. Early deceleration due to gravity and later acceleration due to dark energy modify the exact calculation.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ADVANCED MODULE -->
+<div id="mod-advanced" class="module">
+  <div class="wrapper">
+    <div class="module-header">
+      <span class="module-tag tag-advanced">Advanced</span>
+      <h2>Hubble's Law in the Friedmann Framework</h2>
+    </div>
+
+    <!-- Tab navigation for Advanced -->
+    <div class="tab-nav">
+      <button class="tab-btn active" onclick="switchTab('theory', this)">GR Derivation</button>
+      <button class="tab-btn" onclick="switchTab('h-tension', this)">Hubble Tension</button>
+      <button class="tab-btn" onclick="switchTab('simulation', this)">Scale Factor Sim</button>
+      <button class="tab-btn" onclick="switchTab('perturbation', this)">Perturbation Theory</button>
+    </div>
+
+    <!-- Theory Tab -->
+    <div id="tab-theory" class="tab-content active">
+      <div class="section">
+        <h3>From General Relativity to Hubble's Law</h3>
+        <p>Hubble's Law is not a postulate, it is a consequence of Einstein's field equations applied to a homogeneous, isotropic universe. The FLRW metric encodes this geometry:</p>
+        <div class="equation-block">
+          ds&sup2; = -c&sup2;dt&sup2; + a(t)&sup2;[dr&sup2;/(1-kr&sup2;) + r&sup2;d&Omega;&sup2;]
+          <span class="eq-label">FLRW Metric</span>
+          <span class="eq-sub">a(t): scale factor, k: curvature (-1, 0, +1), r: comoving coordinate</span>
+        </div>
+        <p>The proper physical distance between two comoving observers at comoving separation r0 is:</p>
+        <div class="equation-block">
+          d(t) = a(t) r<sub>0</sub>
+        </div>
+        <p>Differentiating with respect to time gives the recession velocity:</p>
+        <div class="equation-block">
+          v = d&#775; = &agrave;(t) r<sub>0</sub> = [&agrave;(t)/a(t)] d(t) = H(t) d(t)
+          <span class="eq-sub">This is Hubble's Law, with H(t) = a-dot/a the Hubble parameter</span>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3>The Friedmann Equations</h3>
+        <p>Substituting the FLRW metric into Einstein's equations gives the Friedmann equations governing the evolution of a(t):</p>
+        <div class="equation-block">
+          H&sup2; = (a&#775;/a)&sup2; = 8&pi;G&rho;/3 - kc&sup2;/a&sup2; + &Lambda;c&sup2;/3
+          <span class="eq-label">First Friedmann Equation</span>
+          <span class="eq-sub">rho: total energy density, Lambda: cosmological constant, k: curvature</span>
+        </div>
+        <div class="equation-block">
+          a&uml;/a = -4&pi;G/3(&rho; + 3p/c&sup2;) + &Lambda;c&sup2;/3
+          <span class="eq-label">Acceleration Equation</span>
+          <span class="eq-sub">p: pressure; ordinary matter has p > 0 (decelerates); dark energy has p < 0 (accelerates)</span>
+        </div>
+
+        <div class="derivation">
+          <div class="d-step">
+            <div class="d-step-num"></div>
+            <div class="d-step-body">
+              <p>Define the critical density at which the universe is spatially flat (k=0):</p>
+              <div class="equation-block" style="text-align:left; font-size:0.95rem;">
+                &rho;<sub>c</sub> = 3H&sup2;/(8&pi;G)
+              </div>
+            </div>
+          </div>
+          <div class="d-step">
+            <div class="d-step-num"></div>
+            <div class="d-step-body">
+              <p>Define density parameters for each component:</p>
+              <div class="equation-block" style="text-align:left; font-size:0.95rem;">
+                &Omega;<sub>m</sub> = &rho;<sub>m</sub>/&rho;<sub>c</sub>, &nbsp; &Omega;<sub>r</sub> = &rho;<sub>r</sub>/&rho;<sub>c</sub>, &nbsp; &Omega;<sub>&Lambda;</sub> = &Lambda;c&sup2;/(3H&sup2;)
+              </div>
+            </div>
+          </div>
+          <div class="d-step">
+            <div class="d-step-num"></div>
+            <div class="d-step-body">
+              <p>The first Friedmann equation becomes the closure relation:</p>
+              <div class="equation-block" style="text-align:left; font-size:0.95rem;">
+                &Omega;<sub>m</sub> + &Omega;<sub>r</sub> + &Omega;<sub>&Lambda;</sub> + &Omega;<sub>k</sub> = 1
+                <span class="eq-sub">Current best values: Om ~ 0.31, Or ~ 5x10^-5, OLambda ~ 0.69, Ok ~ 0</span>
+              </div>
+            </div>
+          </div>
+          <div class="d-step">
+            <div class="d-step-num"></div>
+            <div class="d-step-body">
+              <p>The Hubble parameter evolves with redshift as:</p>
+              <div class="equation-block" style="text-align:left; font-size:0.95rem;">
+                H(z) = H<sub>0</sub>[&Omega;<sub>m</sub>(1+z)&sup3; + &Omega;<sub>r</sub>(1+z)&sup4; + &Omega;<sub>&Lambda;</sub>]<sup>1/2</sup>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3>Scale Factor Evolution</h3>
+        <p>The equation of state w = p/(&rho;c&sup2;) determines how each component dilutes as the universe expands. The energy density scales as:</p>
+        <div class="equation-block">
+          &rho; &prop; a<sup>-3(1+w)</sup>
+          <span class="eq-sub">Radiation: w = 1/3, rho ~ a^-4 | Matter: w = 0, rho ~ a^-3 | Lambda: w = -1, rho = const</span>
+        </div>
+        <p>This gives us the three distinct eras of cosmic evolution: radiation domination (a ~ t^1/2), matter domination (a ~ t^2/3), and dark energy domination (a ~ exp(Ht)), the de Sitter phase we are currently entering.</p>
+      </div>
+    </div>
+
+    <!-- Hubble Tension Tab -->
+    <div id="tab-h-tension" class="tab-content">
+      <div class="section">
+        <h3>The Hubble Tension</h3>
+        <p>The most pressing unresolved problem in modern cosmology is the Hubble Tension: two independent classes of measurement give inconsistent values of H0 at the 4-5 sigma level.</p>
+        <table class="data-table">
+          <thead>
+            <tr><th>Method</th><th>H0 (km/s/Mpc)</th><th>Uncertainty</th><th>Anchor</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>CMB (Planck 2018)</td><td>67.4</td><td>&plusmn;0.5</td><td>Early universe</td></tr>
+            <tr><td>BAO + BBN</td><td>67.6</td><td>&plusmn;1.1</td><td>Early universe</td></tr>
+            <tr><td>Cepheids + SNe Ia (SH0ES)</td><td>73.0</td><td>&plusmn;1.0</td><td>Late universe</td></tr>
+            <tr><td>TRGB (CCHP)</td><td>69.8</td><td>&plusmn;1.7</td><td>Late universe</td></tr>
+            <tr><td>Gravitational Waves</td><td>70.0</td><td>&plusmn;12</td><td>Independent</td></tr>
+          </tbody>
+        </table>
+        <div class="callout red">
+          <p>The probability that this discrepancy is a statistical fluctuation is less than one in a hundred thousand. Either we have systematic errors we have not found, or there is genuinely new physics beyond the standard LCDM model.</p>
+        </div>
+      </div>
+      <div class="section">
+        <h3>Proposed Resolutions</h3>
+        <p>Early dark energy models introduce a component that modifies the sound horizon before recombination, effectively shifting the CMB-derived H0 upward. Interacting dark energy and modified gravity theories alter late-time expansion. Some physicists suspect unaccounted systematics in Cepheid calibrations. The JWST has partially complicated the picture by confirming many of the Hubble Space Telescope calibrations, increasing confidence in the high H0 measurement.</p>
+        <div class="callout">
+          <p>This tension may be the first empirical signal pointing beyond LCDM cosmology, the Standard Model of cosmology that has otherwise described observations with extraordinary precision.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scale Factor Simulation Tab -->
+    <div id="tab-simulation" class="tab-content">
+      <div class="section">
+        <h3>Scale Factor Integrator</h3>
+        <p>Numerically integrate the Friedmann equation for configurable cosmological parameters and observe how H(t) and a(t) evolve.</p>
+        <div class="sim-container" style="margin-top:0;">
+          <h3>Friedmann Integrator</h3>
+          <canvas id="canvas-advanced" width="700" height="280"></canvas>
+          <div class="controls">
+            <div class="ctrl-group">
+              <label>&Omega;<sub>m</sub> (Matter)</label>
+              <input type="range" id="a-om" min="0" max="1" step="0.01" value="0.31">
+              <div class="val-display" id="a-om-val">0.31</div>
+            </div>
+            <div class="ctrl-group">
+              <label>&Omega;<sub>&Lambda;</sub> (Dark Energy)</label>
+              <input type="range" id="a-ol" min="0" max="1" step="0.01" value="0.69">
+              <div class="val-display" id="a-ol-val">0.69</div>
+            </div>
+            <div class="ctrl-group">
+              <label>H<sub>0</sub> (km/s/Mpc)</label>
+              <input type="range" id="a-h0" min="50" max="100" value="70">
+              <div class="val-display" id="a-h0-val">70</div>
+            </div>
+          </div>
+          <div class="ctrl-row">
+            <button class="btn primary" onclick="runFriedmann()">Integrate</button>
+            <button class="btn" onclick="resetFriedmann()">Reset to LCDM</button>
+          </div>
+          <div class="readout" id="a-readout">Configure parameters and integrate to see the evolution of a(t).</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Perturbation Theory Tab -->
+    <div id="tab-perturbation" class="tab-content">
+      <div class="section">
+        <h3>Linear Perturbation Theory and the Growth Factor</h3>
+        <p>On the background of Hubble expansion, small density perturbations grow via gravitational instability. The evolution of a density contrast delta = delta_rho / rho in the matter-dominated era follows:</p>
+        <div class="equation-block">
+          &delta;&#776; + 2H&delta;&#775; - 4&pi;G&rho;<sub>m</sub>&delta; = 0
+          <span class="eq-sub">The Hubble drag term 2H*delta-dot suppresses growth relative to Newtonian collapse</span>
+        </div>
+        <p>The growing mode solution in matter domination is simply delta ~ a(t), giving the linear growth factor D+(a). Structure formation is therefore directly sensitive to the expansion history encoded in H(t).</p>
+        <div class="equation-block">
+          f &equiv; d ln D<sub>+</sub>/d ln a &asymp; &Omega;<sub>m</sub>(a)<sup>0.55</sup>
+          <span class="eq-label">Growth rate approximation (Linder 2005)</span>
+          <span class="eq-sub">This gamma=0.55 is a prediction of GR; modified gravity theories predict different values</span>
+        </div>
+      </div>
+      <div class="section">
+        <h3>Redshift Space Distortions as an H0 Probe</h3>
+        <p>Peculiar velocities induced by structure growth distort galaxy redshift surveys in a specific pattern described by the parameter beta = f/b, where b is the linear bias. Measuring this simultaneously with the BAO standard ruler gives a combined constraint on H(z)*r_s and f*sigma_8, allowing cosmological parameter extraction independent of the distance ladder.</p>
+        <div class="callout">
+          <p>This is why future surveys like DESI, Euclid, and the Rubin Observatory are expected to significantly sharpen the Hubble Tension. They constrain H0 through geometric probes entirely independent of Cepheid calibrations.</p>
+        </div>
+      </div>
+      <div class="section">
+        <h3>Horizon Scales and the Hubble Rate</h3>
+        <p>The comoving Hubble horizon r_H = c/(aH) sets the scale of causal contact. During inflation, this scale shrinks (modes exit the horizon). During decelerated expansion, it grows (modes re-enter). The angular scale of the first CMB acoustic peak corresponds to the sound horizon at recombination projected across the distance to the last scattering surface, giving a geometric constraint on the product H0 * d_A, where d_A is the angular diameter distance.</p>
+        <div class="equation-block">
+          d<sub>A</sub>(z) = c/(1+z) &int;<sub>0</sub><sup>z</sup> dz' / H(z')
+          <span class="eq-sub">Angular diameter distance; the integral encodes the entire expansion history</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  <div class="wrapper">
+    Built by Nabin Pandey &mdash; <a href="https://github.com/nabinpandey16" target="_blank">GitHub</a> &mdash; Tri-Chandra Multiple Campus, Tribhuvan University<br>
+    Data sources: Planck Collaboration 2018, SH0ES Team, NASA/IPAC
+  </div>
+</footer>
+
+<script>
+// ===== STARFIELD =====
+(function() {
+  const sf = document.getElementById('starfield');
+  const N = 180;
+  for (let i = 0; i < N; i++) {
+    const s = document.createElement('div');
+    s.className = 'star';
+    const size = Math.random() * 2 + 0.5;
+    const op = (Math.random() * 0.6 + 0.1).toFixed(2);
+    s.style.cssText = `
+      left:${Math.random()*100}%;
+      top:${Math.random()*100}%;
+      width:${size}px;
+      height:${size}px;
+      --op:${op};
+      --dur:${(Math.random()*4+2).toFixed(1)}s;
+      animation-delay:${(Math.random()*4).toFixed(1)}s;
+    `;
+    sf.appendChild(s);
+  }
+})();
+
+// ===== MODULE SWITCHING =====
+function switchModule(name, btn) {
+  document.querySelectorAll('.module').forEach(m => m.classList.remove('active'));
+  document.querySelectorAll('.level-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('mod-' + name).classList.add('active');
+  btn.classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ===== TAB SWITCHING =====
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ===== BEGINNER QUIZ =====
+function bquiz(btn, correct) {
+  const opts = document.querySelectorAll('#bq .quiz-opt');
+  opts.forEach(o => { o.disabled = true; });
+  const fb = document.getElementById('bq-fb');
+  if (correct) {
+    btn.classList.add('correct');
+    fb.style.color = 'var(--teal)';
+    fb.textContent = 'Correct. Three times the distance means three times the recession speed. That is the linear relationship Hubble discovered.';
+  } else {
+    btn.classList.add('wrong');
+    opts.forEach(o => { if (o.textContent.includes('Three')) o.classList.add('correct'); });
+    fb.style.color = 'var(--red)';
+    fb.textContent = 'Not quite. Distance and recession speed are directly proportional in Hubble\'s Law.';
+  }
+}
+
+// ===== BEGINNER SIMULATION =====
+let bSimRunning = true;
+let bAnimFrame;
+let bGalaxies = [];
+const bCanvas = document.getElementById('canvas-beginner');
+const bCtx = bCanvas ? bCanvas.getContext('2d') : null;
+let bTime = 0;
+let bScale = 1.0;
+
+function initBeginnerGalaxies() {
+  bGalaxies = [];
+  const cx = bCanvas.width / 2, cy = bCanvas.height / 2;
+  const count = 22;
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const r = 30 + Math.random() * 140;
+    bGalaxies.push({
+      x0: Math.cos(angle) * r,
+      y0: Math.sin(angle) * r,
+      size: Math.random() * 2.5 + 1,
+      color: `hsl(${200 + Math.random()*80},60%,70%)`,
+      angle, r
+    });
+  }
+}
+
+function drawBeginner() {
+  if (!bCtx) return;
+  const w = bCanvas.width, h = bCanvas.height;
+  const cx = w/2, cy = h/2;
+  const h0Slider = document.getElementById('b-h0');
+  const h0Rate = parseFloat(h0Slider.value) / 100 * 0.0008 + 0.0002;
+
+  bCtx.fillStyle = '#020409';
+  bCtx.fillRect(0, 0, w, h);
+
+  // Grid circles
+  for (let r = 40; r < 200; r += 40) {
+    bCtx.beginPath();
+    bCtx.arc(cx, cy, r * bScale, 0, Math.PI*2);
+    bCtx.strokeStyle = 'rgba(79,140,255,0.07)';
+    bCtx.lineWidth = 1;
+    bCtx.stroke();
+  }
+
+  // Draw galaxies
+  bGalaxies.forEach((g, idx) => {
+    const sc = bScale;
+    const px = cx + g.x0 * sc;
+    const py = cy + g.y0 * sc;
+
+    // Velocity indicator line
+    const vx = g.x0 * h0Rate * 80;
+    const vy = g.y0 * h0Rate * 80;
+    bCtx.beginPath();
+    bCtx.moveTo(px, py);
+    bCtx.lineTo(px + vx * sc, py + vy * sc);
+    bCtx.strokeStyle = 'rgba(79,140,255,0.35)';
+    bCtx.lineWidth = 1;
+    bCtx.stroke();
+
+    // Galaxy dot
+    bCtx.beginPath();
+    bCtx.arc(px, py, g.size + 1, 0, Math.PI*2);
+    bCtx.fillStyle = 'rgba(79,140,255,0.15)';
+    bCtx.fill();
+    bCtx.beginPath();
+    bCtx.arc(px, py, g.size, 0, Math.PI*2);
+    bCtx.fillStyle = g.color;
+    bCtx.fill();
+  });
+
+  // Observer (us)
+  bCtx.beginPath();
+  bCtx.arc(cx, cy, 5, 0, Math.PI*2);
+  bCtx.fillStyle = '#f5a623';
+  bCtx.fill();
+  bCtx.fillStyle = 'rgba(245,166,35,0.3)';
+  bCtx.beginPath();
+  bCtx.arc(cx, cy, 10, 0, Math.PI*2);
+  bCtx.fill();
+
+  // Label
+  bCtx.fillStyle = 'rgba(245,166,35,0.8)';
+  bCtx.font = '10px JetBrains Mono, monospace';
+  bCtx.fillText('YOU', cx + 10, cy - 8);
+
+  // H0 display
+  const h0val = 50 + parseFloat(h0Slider.value) * 0.5;
+  document.getElementById('b-h0-val').textContent = `H0 = ${Math.round(h0val)} km/s/Mpc`;
+
+  if (bSimRunning) {
+    bScale += h0Rate;
+    if (bScale > 3.5) { bScale = 1.0; }
+  }
+
+  bAnimFrame = requestAnimationFrame(drawBeginner);
+}
+
+function toggleBeginnerSim() {
+  bSimRunning = !bSimRunning;
+  document.getElementById('b-play').textContent = bSimRunning ? 'Pause' : 'Play';
+}
+
+function resetBeginnerSim() {
+  bScale = 1.0;
+  initBeginnerGalaxies();
+}
+
+if (bCtx) { initBeginnerGalaxies(); drawBeginner(); }
+
+// ===== INTERMEDIATE SIMULATION =====
+const iCanvas = document.getElementById('canvas-hubble-diagram');
+const iCtx = iCanvas ? iCanvas.getContext('2d') : null;
+let galaxies = [];
+let fittedH0 = null;
+
+function getIParams() {
+  const dist = parseFloat(document.getElementById('i-dist').value);
+  const h0 = parseFloat(document.getElementById('i-h0').value);
+  const noise = parseFloat(document.getElementById('i-noise').value) / 100;
+  document.getElementById('i-dist-val').textContent = dist + ' Mpc';
+  document.getElementById('i-h0-val').textContent = 'H0 = ' + h0 + ' km/s/Mpc';
+  document.getElementById('i-noise-val').textContent = 'Noise: ' + Math.round(noise*100) + '%';
+  return { dist, h0, noise };
+}
+
+function addGalaxy() {
+  const { dist, h0, noise } = getIParams();
+  const trueV = h0 * dist;
+  const scatter = (Math.random() - 0.5) * 2 * noise * trueV;
+  const v = trueV + scatter + (Math.random() - 0.5) * 500; // peculiar velocity
+  galaxies.push({ d: dist, v: v });
+  fittedH0 = null;
+  drawHubbleDiagram();
+  document.getElementById('i-readout').textContent = `Added galaxy at ${dist} Mpc with v = ${Math.round(v)} km/s. Total: ${galaxies.length} galaxies.`;
+}
+
+function addBatch() {
+  const { h0, noise } = getIParams();
+  for (let i = 0; i < 10; i++) {
+    const dist = 10 + Math.random() * 490;
+    const trueV = h0 * dist;
+    const scatter = (Math.random() - 0.5) * 2 * noise * trueV;
+    const v = trueV + scatter + (Math.random() - 0.5) * 800;
+    galaxies.push({ d: dist, v: v });
+  }
+  fittedH0 = null;
+  drawHubbleDiagram();
+  document.getElementById('i-readout').textContent = `Added 10 galaxies. Total: ${galaxies.length}. Now fit H0.`;
+}
+
+function fitLine() {
+  if (galaxies.length < 2) { document.getElementById('i-readout').textContent = 'Need at least 2 galaxies.'; return; }
+  // Least squares through origin
+  let sumDV = 0, sumDD = 0;
+  galaxies.forEach(g => { sumDV += g.d * g.v; sumDD += g.d * g.d; });
+  fittedH0 = sumDV / sumDD;
+  drawHubbleDiagram();
+  const trueH0 = parseFloat(document.getElementById('i-h0').value);
+  const err = Math.abs(fittedH0 - trueH0) / trueH0 * 100;
+  document.getElementById('i-readout').textContent = `Fitted H0 = ${fittedH0.toFixed(1)} km/s/Mpc | True H0 = ${trueH0} km/s/Mpc | Error: ${err.toFixed(1)}%`;
+}
+
+function clearGalaxies() {
+  galaxies = [];
+  fittedH0 = null;
+  drawHubbleDiagram();
+  document.getElementById('i-readout').textContent = 'Diagram cleared.';
+}
+
+function drawHubbleDiagram() {
+  if (!iCtx) return;
+  const w = iCanvas.width, h = iCanvas.height;
+  const pad = { left: 70, right: 20, top: 20, bottom: 50 };
+  const pw = w - pad.left - pad.right;
+  const ph = h - pad.top - pad.bottom;
+  const maxD = 500, maxV = 40000;
+
+  iCtx.fillStyle = '#020409';
+  iCtx.fillRect(0, 0, w, h);
+
+  // Grid
+  iCtx.strokeStyle = 'rgba(30,45,85,0.8)';
+  iCtx.lineWidth = 1;
+  for (let i = 0; i <= 5; i++) {
+    const x = pad.left + (i/5)*pw;
+    const y = pad.top + ph - (i/5)*ph;
+    iCtx.beginPath(); iCtx.moveTo(x, pad.top); iCtx.lineTo(x, pad.top+ph); iCtx.stroke();
+    iCtx.beginPath(); iCtx.moveTo(pad.left, y); iCtx.lineTo(pad.left+pw, y); iCtx.stroke();
+    iCtx.fillStyle = 'rgba(106,126,153,0.8)';
+    iCtx.font = '9px JetBrains Mono, monospace';
+    iCtx.textAlign = 'center';
+    iCtx.fillText(Math.round(i/5*maxD) + ' Mpc', x, pad.top+ph+14);
+    iCtx.textAlign = 'right';
+    iCtx.fillText(Math.round(i/5*maxV/1000) + 'k', pad.left-5, y+3);
+  }
+
+  // Axes labels
+  iCtx.fillStyle = 'var(--text-dim)';
+  iCtx.font = '10px JetBrains Mono, monospace';
+  iCtx.textAlign = 'center';
+  iCtx.fillText('Distance (Mpc)', pad.left + pw/2, h - 5);
+  iCtx.save();
+  iCtx.translate(14, pad.top + ph/2);
+  iCtx.rotate(-Math.PI/2);
+  iCtx.fillText('Recession Velocity (km/s)', 0, 0);
+  iCtx.restore();
+
+  // True Hubble line
+  const trueH0 = parseFloat(document.getElementById('i-h0').value);
+  iCtx.beginPath();
+  iCtx.moveTo(pad.left, pad.top + ph);
+  iCtx.lineTo(pad.left + pw, pad.top + ph - (trueH0 * maxD / maxV) * ph);
+  iCtx.strokeStyle = 'rgba(0,201,167,0.3)';
+  iCtx.lineWidth = 1;
+  iCtx.setLineDash([4, 4]);
+  iCtx.stroke();
+  iCtx.setLineDash([]);
+
+  // Fitted line
+  if (fittedH0 !== null) {
+    iCtx.beginPath();
+    iCtx.moveTo(pad.left, pad.top + ph);
+    iCtx.lineTo(pad.left + pw, pad.top + ph - (fittedH0 * maxD / maxV) * ph);
+    iCtx.strokeStyle = '#4f8cff';
+    iCtx.lineWidth = 2;
+    iCtx.stroke();
+
+    iCtx.fillStyle = '#4f8cff';
+    iCtx.font = '9px JetBrains Mono, monospace';
+    iCtx.textAlign = 'left';
+    iCtx.fillText('H0 = ' + fittedH0.toFixed(1), pad.left + pw - 80, 35);
+  }
+
+  // Data points
+  galaxies.forEach(g => {
+    const x = pad.left + (g.d / maxD) * pw;
+    const y = pad.top + ph - (Math.max(0, g.v) / maxV) * ph;
+    iCtx.beginPath();
+    iCtx.arc(x, y, 3, 0, Math.PI*2);
+    iCtx.fillStyle = 'rgba(245,166,35,0.85)';
+    iCtx.fill();
+  });
+}
+
+if (iCtx) drawHubbleDiagram();
+
+// Intermediate slider listeners
+['i-dist','i-h0','i-noise'].forEach(id => {
+  const el = document.getElementById(id);
+  if(el) el.addEventListener('input', getIParams);
+});
+
+// ===== INTERMEDIATE QUIZ =====
+const iQuestions = [
+  {
+    q: "A galaxy at 200 Mpc has a measured recession velocity of 14,200 km/s. What is the implied value of H0?",
+    opts: ["55 km/s/Mpc", "71 km/s/Mpc", "84 km/s/Mpc", "100 km/s/Mpc"],
+    ans: 1,
+    fb: "Correct. H0 = v/d = 14200/200 = 71 km/s/Mpc."
+  },
+  {
+    q: "Why does Hubble's Law break down at distances less than ~10 Mpc?",
+    opts: ["Light speed becomes significant", "Peculiar velocities dominate over Hubble flow", "Redshift cannot be measured accurately", "The universe is not expanding at small scales"],
+    ans: 1,
+    fb: "At small distances, gravitational peculiar velocities (~hundreds of km/s) are comparable to or exceed the Hubble recession velocity, making the linear relation unreliable."
+  },
+  {
+    q: "Which of the following is a 'standard candle' used in the cosmic distance ladder?",
+    opts: ["Pulsars", "Quasars", "Type Ia Supernovae", "Giant molecular clouds"],
+    ans: 2,
+    fb: "Type Ia supernovae have a well-defined peak luminosity, making them reliable distance indicators out to ~1000 Mpc."
+  },
+  {
+    q: "The Hubble time is defined as 1/H0. For H0 = 70 km/s/Mpc, what does it approximate?",
+    opts: ["The age of the solar system", "An upper bound on the age of the universe", "The age of the oldest stars", "The recombination epoch"],
+    ans: 1,
+    fb: "The Hubble time 1/H0 ~ 14 Gyr gives an upper bound on cosmic age assuming constant expansion. Actual age (13.8 Gyr) is slightly less due to the interplay of deceleration and acceleration phases."
+  }
+];
+let iqIndex = 0;
+
+function renderIQ() {
+  const q = iQuestions[iqIndex % iQuestions.length];
+  const container = document.getElementById('iq-container');
+  container.innerHTML = `
+    <div class="quiz-q">
+      <p>Q${(iqIndex % iQuestions.length) + 1}/${iQuestions.length}: ${q.q}</p>
+      <div class="quiz-options">
+        ${q.opts.map((o, i) => `<button class="quiz-opt" onclick="answerIQ(this, ${i === q.ans}, '${q.fb.replace(/'/g,"&#39;")}', ${q.ans})">${o}</button>`).join('')}
+      </div>
+      <div class="quiz-feedback" id="iq-fb"></div>
+    </div>`;
+}
+
+function answerIQ(btn, correct, fb, ansIdx) {
+  document.querySelectorAll('#iq-container .quiz-opt').forEach((o, i) => {
+    o.disabled = true;
+    if (i === ansIdx) o.classList.add('correct');
+  });
+  const fbEl = document.getElementById('iq-fb');
+  if (!correct) { btn.classList.add('wrong'); }
+  fbEl.style.color = correct ? 'var(--teal)' : 'var(--red)';
+  fbEl.textContent = fb;
+}
+
+function nextIQ() { iqIndex++; renderIQ(); }
+
+renderIQ();
+
+// ===== ADVANCED SIMULATION =====
+const aCanvas = document.getElementById('canvas-advanced');
+const aCtx = aCanvas ? aCanvas.getContext('2d') : null;
+
+function runFriedmann() {
+  if (!aCtx) return;
+  const Om = parseFloat(document.getElementById('a-om').value);
+  const Ol = parseFloat(document.getElementById('a-ol').value);
+  const H0 = parseFloat(document.getElementById('a-h0').value);
+  const Or = 9e-5;
+  const Ok = 1 - Om - Ol - Or;
+
+  // Numerical integration of a(t) using 4th-order Runge-Kutta
+  // H = H0 * sqrt(Om*a^-3 + Or*a^-4 + Ol + Ok*a^-2)
+  // da/dt = a * H
+  // dt/da = 1/(a*H)
+  // Integrate from a=0.01 to a=4
+  const H0_SI = H0 * 1000 / (3.086e22); // in s^-1
+  const Gyr = 3.156e16; // seconds per Gyr
+
+  let a = 0.01;
+  const da = 0.01;
+  const points = [];
+  let t = 0;
+
+  while (a < 4.0) {
+    const H = H0_SI * Math.sqrt(Om*Math.pow(a,-3) + Or*Math.pow(a,-4) + Ol + Ok*Math.pow(a,-2));
+    if (isNaN(H) || H <= 0) break;
+    const dt = da / (a * H);
+    t += dt;
+    points.push({ a, t: t/Gyr });
+    a += da;
+  }
+
+  // Find t at a=1 (today)
+  const todayPt = points.reduce((best, p) => Math.abs(p.a - 1) < Math.abs(best.a - 1) ? p : best, points[0]);
+
+  drawFriedmann(points, todayPt);
+
+  const ageGyr = todayPt.t.toFixed(2);
+  document.getElementById('a-readout').textContent = `Age of universe: ${ageGyr} Gyr | Om=${Om}, OLambda=${Ol}, Ok=${Ok.toFixed(3)}`;
+  document.getElementById('a-om-val').textContent = Om;
+  document.getElementById('a-ol-val').textContent = Ol;
+  document.getElementById('a-h0-val').textContent = H0;
+}
+
+function drawFriedmann(points, todayPt) {
+  if (!aCtx) return;
+  const w = aCanvas.width, h = aCanvas.height;
+  const pad = { left: 65, right: 20, top: 20, bottom: 45 };
+  const pw = w - pad.left - pad.right;
+  const ph = h - pad.top - pad.bottom;
+
+  aCtx.fillStyle = '#020409';
+  aCtx.fillRect(0, 0, w, h);
+
+  const maxT = Math.max(...points.map(p=>p.t)) * 1.05;
+  const maxA = 4.0;
+
+  // Grid
+  for (let i = 0; i <= 4; i++) {
+    const x = pad.left + (i/4)*pw;
+    const y = pad.top + ph - (i/4)*ph;
+    aCtx.strokeStyle = 'rgba(30,45,85,0.7)';
+    aCtx.lineWidth = 1;
+    aCtx.beginPath(); aCtx.moveTo(x, pad.top); aCtx.lineTo(x, pad.top+ph); aCtx.stroke();
+    aCtx.beginPath(); aCtx.moveTo(pad.left, y); aCtx.lineTo(pad.left+pw, y); aCtx.stroke();
+    aCtx.fillStyle = 'rgba(106,126,153,0.8)';
+    aCtx.font = '9px JetBrains Mono, monospace';
+    aCtx.textAlign = 'center';
+    aCtx.fillText((i/4*maxT).toFixed(0) + ' Gyr', x, pad.top+ph+14);
+    aCtx.textAlign = 'right';
+    aCtx.fillText((i/4*maxA).toFixed(1), pad.left-5, pad.top+ph-(i/4)*ph+3);
+  }
+
+  // Labels
+  aCtx.fillStyle = 'rgba(106,126,153,0.9)';
+  aCtx.font = '10px JetBrains Mono, monospace';
+  aCtx.textAlign = 'center';
+  aCtx.fillText('Cosmic Time (Gyr)', pad.left+pw/2, h-4);
+  aCtx.save();
+  aCtx.translate(14, pad.top+ph/2);
+  aCtx.rotate(-Math.PI/2);
+  aCtx.fillText('Scale Factor a(t)', 0, 0);
+  aCtx.restore();
+
+  // a=1 line
+  const y1 = pad.top + ph - (1.0/maxA)*ph;
+  aCtx.beginPath();
+  aCtx.moveTo(pad.left, y1);
+  aCtx.lineTo(pad.left+pw, y1);
+  aCtx.strokeStyle = 'rgba(245,166,35,0.25)';
+  aCtx.setLineDash([3,5]);
+  aCtx.stroke();
+  aCtx.setLineDash([]);
+
+  // Curve
+  aCtx.beginPath();
+  points.forEach((p, i) => {
+    const x = pad.left + (p.t/maxT)*pw;
+    const y = pad.top + ph - (p.a/maxA)*ph;
+    i === 0 ? aCtx.moveTo(x, y) : aCtx.lineTo(x, y);
+  });
+  aCtx.strokeStyle = '#4f8cff';
+  aCtx.lineWidth = 2;
+  aCtx.stroke();
+
+  // Today marker
+  const todayX = pad.left + (todayPt.t/maxT)*pw;
+  aCtx.beginPath();
+  aCtx.arc(todayX, y1, 5, 0, Math.PI*2);
+  aCtx.fillStyle = '#f5a623';
+  aCtx.fill();
+  aCtx.fillStyle = '#f5a623';
+  aCtx.font = '9px JetBrains Mono, monospace';
+  aCtx.textAlign = 'center';
+  aCtx.fillText('NOW', todayX, y1 - 10);
+}
+
+function resetFriedmann() {
+  document.getElementById('a-om').value = 0.31;
+  document.getElementById('a-ol').value = 0.69;
+  document.getElementById('a-h0').value = 70;
+  runFriedmann();
+}
+
+// Advanced slider listeners
+['a-om','a-ol','a-h0'].forEach(id => {
+  const el = document.getElementById(id);
+  if(el) el.addEventListener('input', () => {
+    document.getElementById('a-om-val').textContent = document.getElementById('a-om').value;
+    document.getElementById('a-ol-val').textContent = document.getElementById('a-ol').value;
+    document.getElementById('a-h0-val').textContent = document.getElementById('a-h0').value;
+  });
+});
+</script>
+</body>
+</html>
